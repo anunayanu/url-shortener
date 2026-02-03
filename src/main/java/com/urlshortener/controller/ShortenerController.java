@@ -27,4 +27,20 @@ public class ShortenerController {
             .body(new ShortenResponse(result.shortUrl(), result.original()));
     }
 
+    @GetMapping("/r/{shortCode}")
+    public RedirectView redirect(@PathVariable String shortCode) {
+        String original = shortenerService.resolve(shortCode);
+        if (original == null || original.isEmpty()) {
+            throw new NotFoundException("Short code not found");
+        }
+        RedirectView redirect = new RedirectView(original);
+        redirect.setStatusCode(HttpStatus.FOUND); // 302
+        return redirect;
+    }
+
+    @GetMapping("/metrics/domains")
+    public MetricsDomainsResponse metricsDomains() {
+        return new MetricsDomainsResponse(shortenerService.topDomains());
+    }
+
 }

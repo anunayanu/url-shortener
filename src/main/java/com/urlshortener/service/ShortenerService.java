@@ -65,4 +65,25 @@ public class ShortenerService {
         );
     }
 
+    public String resolve(String shortCode) {
+        return store.getByShortCode(shortCode);
+    }
+
+    public List<DomainCountResponse> topDomains(int n) {
+        Map<String, Integer> counts = store.getDomainCounts();
+        return counts.entrySet().stream()
+                .sorted(Comparator
+                        .<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue).reversed()
+                        .thenComparing(Map.Entry::getKey))
+                .limit(n)
+                .map(e -> new DomainCountResponse(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    public List<DomainCountResponse> topDomains() {
+        return topDomains(TOP_DOMAINS_LIMIT);
+    }
+
+    public record ShortenResult(String shortUrl, String shortCode, String original) {}
+
 }
