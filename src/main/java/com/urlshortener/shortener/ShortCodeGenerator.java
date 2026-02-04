@@ -1,57 +1,42 @@
-package com.urlshortener.shortener;
-
+import com.google.common.hash.Hashing; // Common in industry (Guava)
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-/**
- * Generates a short code for a long URL. Same URL always yields the same code (idempotent).
- * Uses first 8 chars of base64url(sha256(normalizedUrl)).
- */
 public final class ShortCodeGenerator {
 
-    private static final int CODE_LENGTH = 8;
     private static final Base64.Encoder BASE64_URL = Base64.getUrlEncoder().withoutPadding();
 
     private ShortCodeGenerator() {}
 
     public static String generateCode(String longUrl) {
+        // 1. Better Normalization
         String normalized = normalizeUrl(longUrl);
-        byte[] hash = sha256(normalized.getBytes(StandardCharsets.UTF_8));
+
+        // 2. Faster Hashing (MurmurHash3_32 gives a 32-bit hash)
+        // Using the 128-bit version for a better balance of speed and collision resistance
+        byte[] hash = Hashing.murmur3_128()
+                .hashString(normalized, StandardCharsets.UTF_8)
+                .asBytes();
+
+        // 3. Encode and Truncate
         String encoded = BASE64_URL.encodeToString(hash);
-        if (encoded.length() > CODE_LENGTH) {
-            encoded = encoded.substring(0, CODE_LENGTH);
-        }
-        return encoded;
+        return encoded.substring(0, 8);
     }
 
     private static String normalizeUrl(String raw) {
+        if (raw == null) return "";
         try {
-            URI uri = URI.create(raw);
-            String scheme = uri.getScheme();
-            String host = uri.getHost();
-            String path = uri.getRawPath();
-            String query = uri.getRawQuery();
-            if (path == null) path = "";
-            StringBuilder sb = new StringBuilder();
-            if (scheme != null) sb.append(scheme).append("://");
-            if (host != null) sb.append(host);
-            sb.append(path);
-            if (query != null && !query.isEmpty()) sb.append("?").append(query);
-            return sb.toString();
-        } catch (Exception e) {
-            return raw;
-        }
-    }
+            URI uri = new URI(raw.trim()).normalize();
+            String scheme = uri.getScheme() != null ? uri.getScheme().toLowerCase() : "http";
+            String host = uri.getHost() != null ? uri.getHost().toLowerCase() : "";
+            String path = uri.getRawPath() != null ? uri.getRawPath() : "";
+            String query = uri.getRawQuery() != null ? "?" + uri.getRawQuery() : "";
 
-    private static byte[] sha256(byte[] input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return md.digest(input);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
+            // Reconstruct without user-info or fragments for consistency
+            return scheme + "://" + host + path + query;
+        } catch (Exception e) {
+            return raw.toLowerCase().trim();
         }
     }
 }
