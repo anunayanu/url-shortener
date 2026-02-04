@@ -1,3 +1,5 @@
+package com.urlshortener.shortener;
+
 import com.google.common.hash.Hashing; // Common in industry (Guava)
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +12,6 @@ public final class ShortCodeGenerator {
     private ShortCodeGenerator() {}
 
     public static String generateCode(String longUrl) {
-        // 1. Better Normalization
         String normalized = normalizeUrl(longUrl);
 
         // 2. Faster Hashing (MurmurHash3_32 gives a 32-bit hash)
