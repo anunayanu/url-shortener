@@ -64,6 +64,11 @@ docker build -t url-shortener-java .
 docker run -p 8080:8080 url-shortener-java
 ```
 
+
+```` Docker Image Url :
+https://hub.docker.com/r/anunaydocker/url-shortener
+````
+
 ## Configuration
 
 - `server.port` — default 8080
